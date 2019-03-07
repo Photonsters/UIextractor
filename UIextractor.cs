@@ -20,7 +20,7 @@ public class Extractor
 		private static int SPECIAL_BIT = 1 << B_BITS;
 		private static int SPECIAL_BIT_MASK = ~SPECIAL_BIT;
 		private byte[] fileDat = new byte[0];
-		private Stream[] m_ImageStream = new Stream[MaxImages]; //ToDo: change to only one
+		private Stream m_ImageStream = new MemoryStream();
 
 		[StructLayout(LayoutKind.Sequential, Pack = 1)]
 		public struct spi_file_head_t
@@ -116,7 +116,7 @@ public class Extractor
 			return false;
 		}
 
-		public int LoadUI(string InFile)
+		public int LoadUI(string InFile, string OutFolder)
 		{
 			int ImageNum = 0;
 			StreamReader streamReader;
@@ -127,6 +127,16 @@ public class Extractor
 			catch (Exception)
 			{
 				System.Console.WriteLine("Unable to open UI file:" + InFile);
+				return ImageNum;
+			}
+			string path = AppDomain.CurrentDomain.BaseDirectory + "\\" + OutFolder;
+			try
+			{
+				Directory.CreateDirectory(path);
+			}
+			catch (Exception)
+			{
+				System.Console.WriteLine("Unable to create output folder:" + path);
 				return ImageNum;
 			}
 			FileInfo fileInfo = new FileInfo(InFile);
@@ -159,20 +169,20 @@ public class Extractor
 							}
 							byte[] array6 = new byte[spi_file_head_t.file_size];
 							Buffer.BlockCopy(fileDat, ui_head_t.offset + Marshal.SizeOf((object)spi_file_head_t), array6, 0, (int)spi_file_head_t.file_size);
-							if (m_ImageStream[i] != null)
+							if (m_ImageStream != null)
 							{
-								m_ImageStream[i].Close();
-								m_ImageStream[i].Dispose();
-								m_ImageStream[i] = null;
+								m_ImageStream.Close();
+								m_ImageStream.Dispose();
+								m_ImageStream = null;
 							}
-							string text2 = AppDomain.CurrentDomain.BaseDirectory + "\\" + i.ToString() + ".bmp";
+							string text2 = AppDomain.CurrentDomain.BaseDirectory + "\\" + OutFolder + "\\" + i.ToString() + ".bmp";
 							if (GetDataPicture(ui_head_t.x_width, ui_head_t.y_height, array6, text2))
 							{
 								ImageNum++;
 								BitmapImage bitmapImage = new BitmapImage();
-								m_ImageStream[i] = new FileStream(text2, FileMode.Open);
+								m_ImageStream = new FileStream(text2, FileMode.Open);
 								bitmapImage.BeginInit();
-								bitmapImage.StreamSource = m_ImageStream[i];
+								bitmapImage.StreamSource = m_ImageStream;
 								bitmapImage.EndInit();
 							}
 						}
@@ -212,7 +222,8 @@ class MainClass
 
         // Get the images.
         Extractor extractor = new Extractor();
-        int result = extractor.LoadUI(args[0]);
+        int result = extractor.LoadUI(args[0], args[1]);
+        System.Console.WriteLine("Extracted {0} images from UI file.", result);
 
         return 0;
     }

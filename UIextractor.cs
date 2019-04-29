@@ -139,6 +139,18 @@ public class Extractor
 				System.Console.WriteLine("Unable to create output folder:" + path);
 				return ImageNum;
 			}
+			StreamWriter streamWriter;
+			string text = path + "\\UItable.csv";
+			try
+			{
+				streamWriter = new StreamWriter(text);
+			}
+			catch (Exception)
+			{
+				System.Console.WriteLine("Unable to generate UI table file:" + text);
+				return ImageNum;
+			}
+
 			FileInfo fileInfo = new FileInfo(InFile);
 			fileDat = new byte[fileInfo.Length];
 			streamReader.BaseStream.Read(fileDat, 0, fileDat.Length);
@@ -150,11 +162,15 @@ public class Extractor
 			if (spi_file_head_t.magic_num == (SPI_FILE_MAGIC_BASE | 0xC))
 			{
 				ui_head_t ui_head_t = default(ui_head_t);
+				streamWriter.WriteLine("Image UID,Offset,Xpos,Ypos,Xwidth,Yheight,Reserved", ui_head_t.ui_magic, ui_head_t.offset, ui_head_t.x_pos, ui_head_t.y_pos, ui_head_t.x_width, ui_head_t.y_height, ui_head_t.reserved);
 				for (int i = 0; i < MaxImages; i++)
 				{
 					byte[] array5 = new byte[Marshal.SizeOf((object)ui_head_t)];
 					Buffer.BlockCopy(fileDat, 8 + i * Marshal.SizeOf((object)ui_head_t), array5, 0, Marshal.SizeOf((object)ui_head_t));
 					ui_head_t = (ui_head_t)BytesToStruct(array5, Marshal.SizeOf((object)ui_head_t), ui_head_t.GetType());
+					//Add entry to UI table
+					streamWriter.WriteLine(",{0},{1},{2},{3},{4},{5},{6}", ui_head_t.ui_magic, ui_head_t.offset, ui_head_t.x_pos, ui_head_t.y_pos, ui_head_t.x_width, ui_head_t.y_height, ui_head_t.reserved);
+					//Save image (if present)
 					if (ui_head_t.ui_magic == 0) continue; //Missing image. Skip.
 					if (ui_head_t.ui_magic == (uint)(i | (int)UI_BMP_MAGIC_BASE))
 					{
@@ -164,7 +180,7 @@ public class Extractor
 							spi_file_head_t = (spi_file_head_t)BytesToStruct(array, Marshal.SizeOf((object)spi_file_head_t), spi_file_head_t.GetType());
 							if (spi_file_head_t.magic_num != (uint)((int)UI_BMP_MAGIC_BASE | i))
 							{
-								System.Console.WriteLine("Image data error: {0}",i);
+								System.Console.WriteLine("Image header error: {0}",i);
 								continue;
 							}
 							byte[] array6 = new byte[spi_file_head_t.file_size];
@@ -185,16 +201,24 @@ public class Extractor
 								bitmapImage.StreamSource = m_ImageStream;
 								bitmapImage.EndInit();
 							}
+							else
+							{
+								System.Console.WriteLine("Image decoding error: {0}",i);
+								streamWriter.Close();
+								return ImageNum;
+							}
 						}
 						else
 						{
 							System.Console.WriteLine("Image offset error:{0}",i);
+							streamWriter.Close();
 							return ImageNum;
 						}
 					}
 					else
 					{
 						System.Console.WriteLine("Unable to generate image:{0}",i);
+						streamWriter.Close();
 						return ImageNum;
 					}
 				}
@@ -202,8 +226,10 @@ public class Extractor
 			else
 			{
 				System.Console.WriteLine("Invalid UI file!");
+				streamWriter.Close();
 				return ImageNum;
 			}
+		streamWriter.Close();
 		return ImageNum;
 		}
 }

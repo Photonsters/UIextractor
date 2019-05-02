@@ -162,14 +162,14 @@ public class Extractor
 			if (spi_file_head_t.magic_num == (SPI_FILE_MAGIC_BASE | 0xC))
 			{
 				ui_head_t ui_head_t = default(ui_head_t);
-				streamWriter.WriteLine("Image UID,Offset,Xpos,Ypos,Xwidth,Yheight,Reserved", ui_head_t.ui_magic, ui_head_t.offset, ui_head_t.x_pos, ui_head_t.y_pos, ui_head_t.x_width, ui_head_t.y_height, ui_head_t.reserved);
+				streamWriter.WriteLine("Image UID,Offset,Xpos,Ypos,Xwidth,Yheight,Reserved");
 				for (int i = 0; i < MaxImages; i++)
 				{
 					byte[] array5 = new byte[Marshal.SizeOf((object)ui_head_t)];
 					Buffer.BlockCopy(fileDat, 8 + i * Marshal.SizeOf((object)ui_head_t), array5, 0, Marshal.SizeOf((object)ui_head_t));
 					ui_head_t = (ui_head_t)BytesToStruct(array5, Marshal.SizeOf((object)ui_head_t), ui_head_t.GetType());
 					//Add entry to UI table
-					streamWriter.WriteLine(",{0},{1},{2},{3},{4},{5},{6}", ui_head_t.ui_magic, ui_head_t.offset, ui_head_t.x_pos, ui_head_t.y_pos, ui_head_t.x_width, ui_head_t.y_height, ui_head_t.reserved);
+					streamWriter.WriteLine(",{0},{1},{2},{3},{4},{5},{6}", (ui_head_t.ui_magic & 0xFFFF), ui_head_t.offset, ui_head_t.x_pos, ui_head_t.y_pos, ui_head_t.x_width, ui_head_t.y_height, ui_head_t.reserved);
 					//Save image (if present)
 					if (ui_head_t.ui_magic == 0) continue; //Missing image. Skip.
 					if (ui_head_t.ui_magic == (uint)(i | (int)UI_BMP_MAGIC_BASE))
@@ -241,6 +241,7 @@ class MainClass
         // Test if input arguments were supplied:
         if (args.Length < 2)
         {
+            System.Console.WriteLine("CBD UI file extractor v0.3");
             System.Console.WriteLine("Please enter binary UI package and output folder.");
             System.Console.WriteLine("Usage: UIextractor <input UI binary> <output folder>");
             return 1;

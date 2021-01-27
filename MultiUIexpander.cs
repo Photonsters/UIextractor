@@ -100,7 +100,7 @@ public class Extractor
 								System.Console.WriteLine("Unable to generate file:" + text);
 								return ImageNum;
 							}
-							streamWriter.BaseStream.Write(fileDat, i, (int)spi_file_head_t.file_size);
+							streamWriter.BaseStream.Write(fileDat, i, (int)(spi_file_head_t.file_size + 8));
 							streamWriter.Close();
 							System.Console.WriteLine("Extracted UI:" + text);
 						}
